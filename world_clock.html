@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>World Clock — UTC · PST · EAT</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(
+          135deg,
+          #0f2027 0%,
+          #203a43 50%,
+          #2c5364 100%
+        );
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        font-weight: 300;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        color: #20c997;
+        text-shadow: 0 0 20px rgba(32, 201, 151, 0.3);
+      }
+
+      .subtitle {
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-bottom: 50px;
+        letter-spacing: 2px;
+      }
+
+      .clocks-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 30px;
+        justify-content: center;
+        max-width: 1200px;
+        width: 100%;
+      }
+
+      .clock-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(32, 201, 151, 0.15);
+        border-radius: 24px;
+        padding: 40px 50px;
+        text-align: center;
+        min-width: 280px;
+        flex: 1;
+        max-width: 360px;
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .clock-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, #20c997, transparent);
+        opacity: 0.6;
+      }
+
+      .clock-card:hover {
+        transform: translateY(-8px);
+        border-color: rgba(32, 201, 151, 0.4);
+        box-shadow: 0 20px 60px rgba(32, 201, 151, 0.15);
+      }
+
+      .timezone-label {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        color: #20c997;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+
+      .timezone-name {
+        font-size: 1.1rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 20px;
+        font-weight: 300;
+      }
+
+      .time-display {
+        font-size: 3.2rem;
+        font-weight: 200;
+        letter-spacing: 2px;
+        color: #fff;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.2;
+      }
+
+      .time-display .seconds {
+        font-size: 1.6rem;
+        color: rgba(32, 201, 151, 0.7);
+        font-weight: 300;
+      }
+
+      .time-display .ampm {
+        font-size: 1.2rem;
+        color: #20c997;
+        font-weight: 400;
+        margin-left: 6px;
+      }
+
+      .date-display {
+        margin-top: 16px;
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.5);
+        letter-spacing: 1px;
+      }
+
+      .day-display {
+        margin-top: 6px;
+        font-size: 0.9rem;
+        color: rgba(32, 201, 151, 0.6);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      .pulse-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #20c997;
+        border-radius: 50%;
+        margin-left: 10px;
+        animation: pulse 1.5s infinite;
+        vertical-align: middle;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.4;
+          transform: scale(0.7);
+        }
+      }
+
+      .footer {
+        margin-top: 50px;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.3);
+        letter-spacing: 1px;
+      }
+
+      @media (max-width: 768px) {
+        h1 {
+          font-size: 1.8rem;
+        }
+        .time-display {
+          font-size: 2.4rem;
+        }
+        .clock-card {
+          padding: 30px 25px;
+          min-width: 260px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>World Clock</h1>
+    <p class="subtitle">
+      Live Time Across Timezones <span class="pulse-dot"></span>
+    </p>
+
+    <div class="clocks-container">
+      <div class="clock-card">
+        <div class="timezone-label">UTC</div>
+        <div class="timezone-name">Coordinated Universal Time</div>
+        <div class="time-display" id="utc-time">
+          --:--:--<span class="ampm">--</span>
+        </div>
+        <div class="date-display" id="utc-date">--</div>
+        <div class="day-display" id="utc-day">--</div>
+      </div>
+
+      <div class="clock-card">
+        <div class="timezone-label">PST</div>
+        <div class="timezone-name">Pacific Standard Time</div>
+        <div class="time-display" id="pst-time">
+          --:--:--<span class="ampm">--</span>
+        </div>
+        <div class="date-display" id="pst-date">--</div>
+        <div class="day-display" id="pst-day">--</div>
+      </div>
+
+      <div class="clock-card">
+        <div class="timezone-label">EAT</div>
+        <div class="timezone-name">East Africa Time</div>
+        <div class="time-display" id="eat-time">
+          --:--:--<span class="ampm">--</span>
+        </div>
+        <div class="date-display" id="eat-date">--</div>
+        <div class="day-display" id="eat-day">--</div>
+      </div>
+    </div>
+
+    <div class="footer">Updates automatically every second</div>
+
+    <script>
+      const timeZones = [
+        { id: "utc", zone: "UTC" },
+        { id: "pst", zone: "America/Los_Angeles" },
+        { id: "eat", zone: "Africa/Nairobi" },
+      ];
+
+      const days = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+
+      function formatTime(date, timeZone) {
+        const options = {
+          timeZone: timeZone,
+          hour12: true,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        };
+        const timeString = date.toLocaleTimeString("en-US", options);
+        const [timePart, ampm] = timeString.split(" ");
+        const [hours, minutes, seconds] = timePart.split(":");
+        return { hours, minutes, seconds, ampm };
+      }
+
+      function formatDate(date, timeZone) {
+        const options = {
+          timeZone: timeZone,
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        };
+        const dateString = date.toLocaleDateString("en-US", options);
+        return dateString;
+      }
+
+      function getDayName(date, timeZone) {
+        const options = { timeZone: timeZone, weekday: "long" };
+        return date.toLocaleDateString("en-US", options);
+      }
+
+      function updateClocks() {
+        const now = new Date();
+
+        timeZones.forEach(({ id, zone }) => {
+          const time = formatTime(now, zone);
+          const dateStr = formatDate(now, zone);
+          const dayName = getDayName(now, zone);
+
+          const timeEl = document.getElementById(`${id}-time`);
+          const dateEl = document.getElementById(`${id}-date`);
+          const dayEl = document.getElementById(`${id}-day`);
+
+          if (timeEl) {
+            timeEl.innerHTML = `${time.hours}:${time.minutes}:<span class="seconds">${time.seconds}</span><span class="ampm">${time.ampm}</span>`;
+          }
+          if (dateEl) dateEl.textContent = dateStr;
+          if (dayEl) dayEl.textContent = dayName;
+        });
+      }
+
+      updateClocks();
+      setInterval(updateClocks, 1000);
+    </script>
+  </body>
+</html>
