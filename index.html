@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>World Clock — UTC · PST · EAT</title>
+    <title>World Clock — UTC · PST · PT · EAT</title>
     <style>
       * {
         margin: 0;
@@ -50,7 +50,7 @@
         flex-wrap: wrap;
         gap: 30px;
         justify-content: center;
-        max-width: 1200px;
+        max-width: 800px;
         width: 100%;
       }
 
@@ -139,6 +139,21 @@
         letter-spacing: 2px;
       }
 
+      .offset-list {
+        margin-top: 18px;
+        padding-top: 14px;
+        border-top: 1px solid rgba(32, 201, 151, 0.15);
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+        line-height: 1.7;
+        letter-spacing: 1px;
+      }
+
+      .offset-list .hours {
+        color: #20c997;
+        font-weight: 600;
+      }
+
       .pulse-dot {
         display: inline-block;
         width: 8px;
@@ -202,12 +217,22 @@
 
       <div class="clock-card">
         <div class="timezone-label">PST</div>
-        <div class="timezone-name">Pacific Standard Time</div>
+        <div class="timezone-name">Pacific Standard Time (UTC−8)</div>
         <div class="time-display" id="pst-time">
           --:--:--<span class="ampm">--</span>
         </div>
         <div class="date-display" id="pst-date">--</div>
         <div class="day-display" id="pst-day">--</div>
+      </div>
+
+      <div class="clock-card">
+        <div class="timezone-label">PT</div>
+        <div class="timezone-name">Pacific Time</div>
+        <div class="time-display" id="pt-time">
+          --:--:--<span class="ampm">--</span>
+        </div>
+        <div class="date-display" id="pt-date">--</div>
+        <div class="day-display" id="pt-day">--</div>
       </div>
 
       <div class="clock-card">
@@ -218,6 +243,7 @@
         </div>
         <div class="date-display" id="eat-date">--</div>
         <div class="day-display" id="eat-day">--</div>
+        <div class="offset-list" id="eat-offsets"></div>
       </div>
     </div>
 
@@ -225,9 +251,12 @@
 
     <script>
       const timeZones = [
-        { id: "utc", zone: "UTC" },
-        { id: "pst", zone: "America/Los_Angeles" },
-        { id: "eat", zone: "Africa/Nairobi" },
+        { id: "utc", zone: "UTC", label: "UTC" },
+        // Fixed UTC−8 (IANA "Etc" zones use inverted signs)
+        { id: "pst", zone: "Etc/GMT+8", label: "PST" },
+        // Follows daylight saving: PDT (UTC−7) / PST (UTC−8)
+        { id: "pt", zone: "America/Los_Angeles", label: "PT" },
+        { id: "eat", zone: "Africa/Nairobi", label: "EAT" },
       ];
 
       const days = [
@@ -284,6 +313,54 @@
         return date.toLocaleDateString("en-US", options);
       }
 
+      function getOffsetMinutes(date, timeZone) {
+        const options = {
+          timeZone: timeZone,
+          hourCycle: "h23",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        };
+        const parts = new Intl.DateTimeFormat("en-US", options).formatToParts(
+          date,
+        );
+        const p = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+        const wallClockAsUTC = Date.UTC(
+          p.year,
+          p.month - 1,
+          p.day,
+          p.hour,
+          p.minute,
+          p.second,
+        );
+        return Math.round((wallClockAsUTC - date.getTime()) / 60000);
+      }
+
+      function describeOffset(diffMinutes, label) {
+        if (diffMinutes === 0) return `Same time as ${label}`;
+        const hours = Math.abs(diffMinutes) / 60;
+        const direction = diffMinutes > 0 ? "ahead of" : "behind";
+        return `<span class="hours">${hours}h</span> ${direction} ${label}`;
+      }
+
+      function updateOffsets(now, baseId) {
+        const base = timeZones.find(({ id }) => id === baseId);
+        const listEl = document.getElementById(`${baseId}-offsets`);
+        if (!base || !listEl) return;
+
+        const baseOffset = getOffsetMinutes(now, base.zone);
+        listEl.innerHTML = timeZones
+          .filter(({ id }) => id !== baseId)
+          .map(({ zone, label }) => {
+            const diff = baseOffset - getOffsetMinutes(now, zone);
+            return `<div>${describeOffset(diff, label)}</div>`;
+          })
+          .join("");
+      }
+
       function updateClocks() {
         const now = new Date();
 
@@ -302,6 +379,8 @@
           if (dateEl) dateEl.textContent = dateStr;
           if (dayEl) dayEl.textContent = dayName;
         });
+
+        updateOffsets(now, "eat");
       }
 
       updateClocks();
