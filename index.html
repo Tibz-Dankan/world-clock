@@ -244,6 +244,7 @@
         <div class="date-display" id="eat-date">--</div>
         <div class="day-display" id="eat-day">--</div>
         <div class="offset-list" id="eat-offsets"></div>
+        <div class="offset-list" id="eat-deadlines"></div>
       </div>
     </div>
 
@@ -257,6 +258,12 @@
         // Follows daylight saving: PDT (UTC−7) / PST (UTC−8)
         { id: "pt", zone: "America/Los_Angeles", label: "PT" },
         { id: "eat", zone: "Africa/Nairobi", label: "EAT" },
+      ];
+
+      const deadlines = [
+        { zoneId: "pt", hour: 17, minute: 0, label: "5 PM" },
+        { zoneId: "pst", hour: 17, minute: 0, label: "5 PM" },
+        { zoneId: "pt", hour: 23, minute: 59, label: "11:59 PM" },
       ];
 
       const days = [
@@ -313,7 +320,7 @@
         return date.toLocaleDateString("en-US", options);
       }
 
-      function getOffsetMinutes(date, timeZone) {
+      function getZonedParts(date, timeZone) {
         const options = {
           timeZone: timeZone,
           hourCycle: "h23",
@@ -327,7 +334,13 @@
         const parts = new Intl.DateTimeFormat("en-US", options).formatToParts(
           date,
         );
-        const p = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+        return Object.fromEntries(
+          parts.map(({ type, value }) => [type, Number(value)]),
+        );
+      }
+
+      function getOffsetMinutes(date, timeZone) {
+        const p = getZonedParts(date, timeZone);
         const wallClockAsUTC = Date.UTC(
           p.year,
           p.month - 1,
@@ -361,6 +374,37 @@
           .join("");
       }
 
+      function formatDuration(totalMinutes) {
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        if (hours === 0) return `${minutes}m`;
+        if (minutes === 0) return `${hours}h`;
+        return `${hours}h ${minutes}m`;
+      }
+
+      // Measured against today's deadline in the deadline zone's own calendar day
+      function describeDeadline(now, { zoneId, hour, minute, label }) {
+        const { zone, label: zoneLabel } = timeZones.find(
+          ({ id }) => id === zoneId,
+        );
+        const target = `${label} ${zoneLabel}`;
+        const p = getZonedParts(now, zone);
+        const diff = hour * 60 + minute - (p.hour * 60 + p.minute);
+
+        if (diff === 0) return `It's ${target} now`;
+        const direction = diff > 0 ? "to" : "past";
+        return `<span class="hours">${formatDuration(Math.abs(diff))}</span> ${direction} ${target}`;
+      }
+
+      function updateDeadlines(now, baseId) {
+        const listEl = document.getElementById(`${baseId}-deadlines`);
+        if (!listEl) return;
+
+        listEl.innerHTML = deadlines
+          .map((deadline) => `<div>${describeDeadline(now, deadline)}</div>`)
+          .join("");
+      }
+
       function updateClocks() {
         const now = new Date();
 
@@ -381,6 +425,7 @@
         });
 
         updateOffsets(now, "eat");
+        updateDeadlines(now, "eat");
       }
 
       updateClocks();
